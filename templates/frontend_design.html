@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Voucher Spend Predictor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='apptheme.css') }}">
+    <style>
+        img.prediction-plot {
+            width: 100%;
+            max-width: 700px;
+            margin: 20px auto;
+            display: block;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎁 Voucher Spend Predictor</h1>
+            <p>Upload your annual spending data and get future recommendations instantly</p>
+        </header>
+
+        <main>
+            <form action="/predict" method="POST" enctype="multipart/form-data">
+                <label for="file">📂 Upload Excel File (.xlsx):</label>
+                <input type="file" id="file" name="file" accept=".xlsx" required>
+                <button type="submit">Predict</button>
+            </form>
+
+            {% if prediction %}
+            <div class="result">
+                <h2>🔮 Prediction Result</h2>
+                <p>{{ prediction|safe }}</p>
+            </div>
+            {% endif %}
+
+            {% if plot_url %}
+            <div class="plot">
+                <h3>📊 Prediction Graph</h3>
+                <img src="{{ plot_url }}" alt="Prediction Plot" class="prediction-plot">
+            </div>
+            {% endif %}
+        </main>
+
+        <section class="instructions">
+            <h3>📌 Instructions:</h3>
+            <ul>
+                <li>Ensure your Excel file contains yearly voucher spend data</li>
+                <li>Upload the file and click Predict</li>
+                <li>The result will show your recommended future spend and visual trends</li>
+            </ul>
+        </section>
+
+        <footer>
+            <p>© 2025 Your Company Name | Built by Jhashen</p>
+        </footer>
+    </div>
+</body>
+</html>
