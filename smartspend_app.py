@@ -26,15 +26,19 @@ def predict():
         # Clean old plot
         plot_filename = 'prediction_plot.png'
         plot_path = os.path.join('static', plot_filename)
-        plot_url = url_for('static', filename=plot_filename) + f"?v={os.path.getmtime(plot_path)}"
         if os.path.exists(plot_path):
             os.remove(plot_path)
 
         # Plotting
         plt.figure(figsize=(10, 6))
         plt.plot(df['Year'], df['TotalSpent(RM)'], marker='o', label='Actual Spending', color='blue')
-        plt.plot(result['future_years'].flatten(), result['future_predictions'], marker='o', linestyle='--', label='Future Predictions', color='orange')
-        plt.title("Voucher Spending Prediction")
+        
+        # Note: Changed from result['future_years'].flatten() to just result['future_years']
+        # since we modified the return format in the PyCaret version
+        plt.plot(result['future_years'], result['future_predictions'], 
+                marker='o', linestyle='--', label='Future Predictions', color='orange')
+        
+        plt.title(f"Voucher Spending Prediction (Best Model: {result['model_type']})")
         plt.xlabel("Year")
         plt.ylabel("Total Spent (RM)")
         plt.grid(True)
@@ -43,15 +47,22 @@ def predict():
         plt.savefig(plot_path)
         plt.close()
 
+        # Generate URL with cache-busting timestamp
+        plot_url = url_for('static', filename=plot_filename) + f"?v={datetime.datetime.now().timestamp()}"
+
         return render_template(
             'frontend_design.html',
             prediction=(
-                f"✅ Suggested spend for 2024: RM {result['future_predictions'][0]:.2f}<br>"
-                f"📊 R² Score: {result['r2']:.2f}, MSE: {result['mse']:.2f}"
+                f"✅ Best Model: {result['model_type']}<br>"
+                f"📅 Future Predictions:<br>"
+                f"&nbsp;&nbsp;2024: RM {result['future_predictions'][0]:.2f}<br>"
+                f"&nbsp;&nbsp;2025: RM {result['future_predictions'][1]:.2f}<br>"
+                f"&nbsp;&nbsp;2026: RM {result['future_predictions'][2]:.2f}<br>"
+                f"&nbsp;&nbsp;2027: RM {result['future_predictions'][3]:.2f}<br>"
+                f"📊 Model Metrics - R²: {result['r2']:.2f}, MSE: {result['mse']:.2f}"
             ),
-        plot_url=plot_url
-)
-
+            plot_url=plot_url
+        )
 
     except Exception as e:
         return render_template('frontend_design.html', prediction=f"⚠️ Error: {str(e)}")

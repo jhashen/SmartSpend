@@ -1,1 +1,7 @@
-/uploads
+# Virtual environments
+venv/
+pycaret_venv/
+env/
+
+# Uploads
+uploads/
