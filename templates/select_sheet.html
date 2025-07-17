@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Select Worksheet</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='apptheme.css') }}">
+    <style>
+        img.prediction-plot {
+            width: 100%;
+            max-width: 700px;
+            margin: 20px auto;
+            display: block;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Select Worksheet for Prediction</h2>
+    <form method="POST" action="{{ url_for('predict_sheet') }}">
+        <label for="sheet">Choose a sheet:</label>
+        <select name="sheet" id="sheet">
+            {% for sheet in sheet_names %}
+            <option value="{{ sheet }}">{{ sheet }}</option>
+            {% endfor %}
+        </select>
+        <input type="hidden" name="temp_file" value="{{ temp_file }}">
+        <button type="submit">Submit</button>
+    </form>
+</body>
+</html>
