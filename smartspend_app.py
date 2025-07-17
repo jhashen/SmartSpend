@@ -4,7 +4,7 @@ import uuid
 import pandas as pd
 import matplotlib.pyplot as plt
 import datetime
-from model.voucher_prediction_model import train_and_predict
+from model.voucher_prediction_model import train_and_predict  # Your integrated ML function
 
 app = Flask(__name__, static_folder='static')
 
@@ -13,10 +13,12 @@ TEMP_UPLOAD_FOLDER = 'temp_uploads'
 if not os.path.exists(TEMP_UPLOAD_FOLDER):
     os.makedirs(TEMP_UPLOAD_FOLDER)
 
+#loads home page
 @app.route('/')
 def home():
     return render_template('frontend_design.html')
 
+#app flow
 @app.route('/predict', methods=['POST'])
 def predict():
     if 'file' not in request.files:
@@ -37,7 +39,7 @@ def predict():
         sheet_names = xls.sheet_names
 
         # Required columns for ML model
-        required_columns = {'Date Submitted', 'Status', 'Price(RM)'}
+        required_columns = {'Year', 'Status', 'Price(RM)'}
 
         # If only one sheet, proceed directly
         if len(sheet_names) == 1:
@@ -71,7 +73,7 @@ def predict_sheet():
         df = pd.read_excel(temp_file_path, sheet_name=selected_sheet)
 
         # Required columns for ML model
-        required_columns = {'Date Submitted', 'Status', 'Price(RM)'}
+        required_columns = {'Year', 'Status', 'Price(RM)'}
         if not required_columns.issubset(df.columns):
             os.remove(temp_file_path)
             return render_template('frontend_design.html', prediction=f"⚠️ Selected sheet does not contain required columns: {', '.join(required_columns)}.")
