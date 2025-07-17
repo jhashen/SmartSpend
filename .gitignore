@@ -7,4 +7,4 @@ env/
 uploads/
 
 #ignore pkl files
-dummymodels/models/
+dummymodel/models/
