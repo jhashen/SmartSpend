@@ -5,4 +5,6 @@ env/
 
 # Uploads
 uploads/
-dummymodel/
+
+#ignore pkl files
+dummymodel/models/

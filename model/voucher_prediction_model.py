@@ -1,66 +1,110 @@
 import numpy as np
 import pandas as pd
-from pycaret.regression import *
-from sklearn.model_selection import train_test_split
-import joblib
-import datetime
 import os
+from datetime import datetime as dt
+from sklearn.linear_model import Lars
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_absolute_error, mean_absolute_percentage_error, r2_score
 
-# creates directory for saved models
 MODEL_DIR = os.path.dirname(__file__)
-if not os.path.exists(MODEL_DIR + '/models'):
-    os.makedirs(MODEL_DIR, exist_ok=True)
+if not os.path.exists(os.path.join(MODEL_DIR, 'models')):
+    os.makedirs(os.path.join(MODEL_DIR, 'models'), exist_ok=True)
+
+def preprocess_yearly_data(df):
+    df = df.dropna(subset=['Year', 'Status', 'Price(RM)'])
+    df['Price(RM)'] = pd.to_numeric(df['Price(RM)'], errors='coerce')
+    df = df.dropna(subset=['Price(RM)'])
+    df = df[df['Status'] == 'Reward Collected']
+
+    # Ensure Year is numeric
+    df['Year'] = pd.to_numeric(df['Year'], errors='coerce')
+    df = df.dropna(subset=['Year'])
+    df['Year'] = df['Year'].astype(int)
+
+    yearly_data = df.groupby('Year').agg({
+        'Price(RM)': ['sum', 'count', 'mean'],
+    })
+    yearly_data.columns = ['TotalSpent', 'TransactionCount', 'AverageSpent']
+    yearly_data = yearly_data.reset_index()
+    yearly_data = yearly_data.sort_values('Year')
+    return yearly_data
 
 def train_and_predict(df):
-    if 'Year' not in df.columns or 'TotalSpent(RM)' not in df.columns:
-        raise ValueError("Missing 'Year' or 'TotalSpent(RM)' column")   
+    processed_df = preprocess_yearly_data(df)
 
-    # Prepare data
-    X = df[['Year']]
-    y = df['TotalSpent(RM)']
-    
-    # Initialize PyCaret
-    setup_data = pd.concat([X, y], axis=1)
-    setup_data.columns = ['Year', 'TotalSpent(RM)']  # Ensure proper column names
-    
-    # Initialize PyCaret regression
-    reg = setup(
-        data=setup_data,
-        target='TotalSpent(RM)',
-        train_size=0.8,
-        session_id=42,
-        silent=True,  # Set to False if you want to see progress
-        verbose=False
+    # Prepare features and target
+    X = processed_df[['TransactionCount', 'AverageSpent']].values
+    y = processed_df['TotalSpent'].values
+
+    # Scale features
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    # Train-test split (80-20)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X_scaled, y, test_size=0.2, random_state=42
     )
-    
-    # Compare models and select the best one
-    best_model = compare_models(sort='R2', n_select=1)
-    
-    # Finalize the best model (trains on entire dataset)
-    final_model = finalize_model(best_model)
-    
-    # Make predictions on test set (held back during setup)
-    predictions = predict_model(final_model)
-    
-    # Get metrics
-    metrics = pull()  # Gets the metrics dataframe
-    
-    # Future predictions
-    future_years = np.array([2024, 2025, 2026, 2027]).reshape(-1, 1)
-    future_df = pd.DataFrame(future_years, columns=['Year'])
-    future_predictions = predict_model(final_model, data=future_df)
-    
-    # Save the trained model
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    model_filename = f"voucher_prediction_model_{timestamp}.pkl"
-    save_model(final_model, os.path.join(MODEL_DIR, model_filename))
-    
+
+    # Train Least Angle Regression model
+    model = Lars()
+    model.fit(X_train, y_train)
+
+    # Evaluate on full data for consistency with previous code
+    y_pred = model.predict(X_scaled)
+    mae = mean_absolute_error(y, y_pred)
+    mape = mean_absolute_percentage_error(y, y_pred)
+    r2 = r2_score(y, y_pred)
+    r2_accuracy = max(0, min(1, r2)) * 100
+
+    # Generate future data for next 4 years
+    last_year = processed_df['Year'].max()
+    future_years = list(range(last_year + 1, last_year + 5))
+
+    last_trans_count = processed_df['TransactionCount'].iloc[-1]
+    last_avg_spent = processed_df['AverageSpent'].iloc[-1]
+
+    future_data = pd.DataFrame({
+        'Year': future_years,
+        'TransactionCount': np.round(np.linspace(
+            last_trans_count,
+            last_trans_count * 1.10,
+            4
+        )),
+        'AverageSpent': np.linspace(
+            last_avg_spent,
+            last_avg_spent * 1.05,
+            4
+        )
+    })
+
+    # Scale future features
+    X_future = future_data[['TransactionCount', 'AverageSpent']].values
+    X_future_scaled = scaler.transform(X_future)
+
+    # Predict future spending
+    future_predictions = model.predict(X_future_scaled)
+    future_data['PredictedSpent'] = future_predictions
+
+    # Save model
+    timestamp = dt.now().strftime("%Y%m%d_%H%M%S")
+    model_filename = f"voucher_yearly_lars_model_{timestamp}.pkl"
+
+    import joblib
+    joblib.dump({
+        'model': model,
+        'scaler': scaler
+    }, os.path.join(MODEL_DIR, 'models', model_filename))
+
     return {
-        "model_type": type(final_model).__name__,
-        "r2": metrics.loc['Mean']['R2'],  # Mean R2 from CV
-        "mse": metrics.loc['Mean']['MSE'],  # Mean MSE from CV
-        "future_years": future_years.flatten().tolist(),
-        "future_predictions": future_predictions['prediction_label'].tolist(),
-        "timestamp": timestamp,
-        "model_filename": model_filename
+        "model_type": type(model).__name__,
+        "mae": mae,
+        "mape": mape,
+        "r2": r2,
+        "r2_accuracy": r2_accuracy,
+        "future_years": future_data['Year'].tolist(),
+        "future_predictions": future_data['PredictedSpent'].tolist(),
+        "historical_data": processed_df.to_dict('records'),
+        "all_models_results": [],  # not applicable as we no longer compare multiple models
+        "timestamp": timestamp
     }

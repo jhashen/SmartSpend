@@ -1,70 +1,162 @@
 /* General page setup */
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f5f8fa;
+    background-color: #65b2ff;
     margin: 0;
     padding: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     min-height: 100vh;
+    color: #333;
 }
 
-/* Page title */
-h1 {
+.container {
+    width: 90%;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+header h1 {
     color: #2c3e50;
-    margin-top: 50px;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
+}
+
+header p {
+    color: #6c757d;
+    font-size: 1.1em;
 }
 
 /* Form styling */
 form {
     background-color: #ffffff;
-    padding: 30px 40px;
+    padding: 30px;
     border-radius: 10px;
     box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-    text-align: center;
+    margin-bottom: 30px;
 }
 
-/* File input */
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
 input[type="file"] {
+    display: block;
+    width: 100%;
     padding: 10px;
+    border: 2px dashed #ddd;
     border-radius: 5px;
-    border: 1px solid #ccc;
-    margin: 20px 0;
+    margin: 15px 0;
+    background-color: #f8f9fa;
 }
 
-/* Submit button */
-input[type="submit"] {
-    padding: 10px 20px;
-    background-color: #3498db;
+input[type="file"]:hover {
+    border-color: #48a6ff;
+}
+
+input[type="radio"] {
+    margin-right: 10px;
+}
+
+button, input[type="submit"] {
+    padding: 12px 25px;
+    background-color: #48a6ff;
     border: none;
     border-radius: 6px;
     color: white;
     font-weight: bold;
     cursor: pointer;
     transition: background-color 0.3s ease;
+    font-size: 1em;
+    margin-top: 15px;
 }
 
-input[type="submit"]:hover {
-    background-color: #2980b9;
+button:hover, input[type="submit"]:hover {
+    background-color: #3a8bd6;
 }
 
-/* Prediction result */
-h2 {
+/* Result styling */
+.result {
+    background-color: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 30px;
+}
+
+.plot {
+    background-color: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.instructions {
+    background-color: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 30px;
+}
+
+footer {
+    text-align: center;
     margin-top: 30px;
-    color: #2e8b57;
-    font-size: 1.5em;
+    padding: 20px;
+    color: #6c757d;
+    font-size: 0.9em;
 }
 
 /* Responsive tweaks */
-@media (max-width: 600px) {
-    form {
-        width: 90%;
+@media (max-width: 768px) {
+    .container {
+        width: 95%;
+        padding: 10px;
+    }
+    
+    form, .result, .plot, .instructions {
         padding: 20px;
     }
-
-    h1, h2 {
-        text-align: center;
+    
+    button, input[type="submit"] {
+        width: 100%;
+        padding: 15px;
     }
+}
+
+/* Table specific styles */
+table {
+    width: 100%;
+    margin: 20px 0;
+    border-collapse: collapse;
+}
+
+th {
+    background-color: #48a6ff;
+    color: white;
+    padding: 12px;
+    text-align: left;
+}
+
+td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #ddd;
+}
+
+tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+tr:hover {
+    background-color: #f1f1f1;
 }
