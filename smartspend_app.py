@@ -104,16 +104,48 @@ def render_prediction(result):
     processed_df = pd.DataFrame(result['historical_data'])
 
     plt.figure(figsize=(10, 6))
-    plt.plot(processed_df['Year'], processed_df['TotalSpent'], marker='o', label='Actual Spending', color='blue')
-    plt.plot(result['future_years'], result['future_predictions'], marker='o', linestyle='--', label='Future Predictions', color='orange')
-
-    plt.title(f"Voucher Spending Prediction (Best Model: {result['model_type']})")
-    plt.xlabel("Year")
-    plt.ylabel("Total Spent (RM)")
-    plt.grid(True)
-    plt.legend()
+    
+    # Plot historical data with enhanced markers and labels
+    historical_line = plt.plot(processed_df['Year'], processed_df['TotalSpent'], 
+                             marker='o', markersize=8, label='Actual Spending', 
+                             color='blue', linestyle='-', linewidth=2)
+    
+    # Add data point labels for historical data
+    for x, y in zip(processed_df['Year'], processed_df['TotalSpent']):
+        plt.annotate(f'RM{y:.2f}', 
+                    (x, y),
+                    textcoords="offset points",
+                    xytext=(0,10),
+                    ha='center',
+                    fontsize=9,
+                    color='black')
+    
+    # Plot future predictions with enhanced markers and labels
+    future_line = plt.plot(result['future_years'], result['future_predictions'], 
+                          marker='o', markersize=8, linestyle='--', 
+                          label='Future Predictions', color='orange', linewidth=2)
+    
+    # Add data point labels for future predictions
+    for x, y in zip(result['future_years'], result['future_predictions']):
+        plt.annotate(f'RM{y:.2f}', 
+                    (x, y),
+                    textcoords="offset points",
+                    xytext=(0,10),
+                    ha='center',
+                    fontsize=9,
+                    color='black')
+    
+    plt.title(f"Voucher Spending Prediction (Best Model: {result['model_type']})", fontsize=14, pad=20)
+    plt.xlabel("Year", fontsize=12)
+    plt.ylabel("Total Spent (RM)", fontsize=12)
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.legend(fontsize=12)
+    
+    # Adjust layout to prevent label cutoff
     plt.tight_layout()
-    plt.savefig(plot_path)
+    
+    # Save plot with higher DPI for better quality
+    plt.savefig(plot_path, dpi=100)
     plt.close()
 
     plot_url = url_for('static', filename=plot_filename) + f"?v={datetime.datetime.now().timestamp()}"
@@ -129,6 +161,3 @@ def render_prediction(result):
     )
 
     return render_template('frontend_design.html', prediction=prediction_text, plot_url=plot_url)
-
-if __name__ == '__main__':
-    app.run(debug=True)
