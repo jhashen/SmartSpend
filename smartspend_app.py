@@ -144,5 +144,3 @@ def render_prediction(result):
 
     return render_template('frontend_design.html', prediction=prediction_text, plot_url=plot_url)
 
-if __name__ == '__main__':
-    app.run(debug=True)
