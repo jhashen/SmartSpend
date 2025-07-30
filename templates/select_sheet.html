@@ -16,7 +16,10 @@
     </style>
 </head>
 <body>
-    <h2>Select Worksheet for Prediction</h2>
+    <div class="boxed-heading">
+        <h2>Select Worksheet for Prediction</h2>
+    </div>
+
     <form method="POST" action="{{ url_for('predict_sheet') }}">
         <label for="sheet">Choose a sheet:</label>
         <select name="sheet" id="sheet">

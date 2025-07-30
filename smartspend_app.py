@@ -8,17 +8,29 @@ from model.voucher_prediction_model import train_and_predict  # Your integrated 
 
 app = Flask(__name__, static_folder='static')
 
+# ✅ BEGIN: Automatic cache busting for static files (e.g., CSS)
+@app.context_processor
+def override_url_for():
+    def dated_url_for(endpoint, **values):
+        if endpoint == 'static':
+            filename = values.get('filename', None)
+            if filename:
+                file_path = os.path.join(app.static_folder, filename)
+                if os.path.exists(file_path):
+                    values['v'] = int(os.path.getmtime(file_path))
+        return url_for(endpoint, **values)
+    return dict(url_for=dated_url_for)
+# ✅ END
+
 # Ensure temp_uploads folder exists
 TEMP_UPLOAD_FOLDER = 'temp_uploads'
 if not os.path.exists(TEMP_UPLOAD_FOLDER):
     os.makedirs(TEMP_UPLOAD_FOLDER)
 
-#loads home page
 @app.route('/')
 def home():
     return render_template('frontend_design.html')
 
-#app flow
 @app.route('/predict', methods=['POST'])
 def predict():
     if 'file' not in request.files:
@@ -29,34 +41,27 @@ def predict():
         return render_template('frontend_design.html', prediction="❌ Empty file uploaded")
 
     try:
-        # Save file temporarily with unique name
         unique_filename = f"{uuid.uuid4()}_{file.filename}"
         temp_file_path = os.path.join(TEMP_UPLOAD_FOLDER, unique_filename)
         file.save(temp_file_path)
 
-        # Read available sheets
         xls = pd.ExcelFile(temp_file_path)
         sheet_names = xls.sheet_names
 
-        # Required columns for ML model
         required_columns = {'Year', 'Status', 'Price(RM)'}
 
-        # If only one sheet, proceed directly
         if len(sheet_names) == 1:
             df = pd.read_excel(temp_file_path, sheet_name=sheet_names[0])
 
-            # Validate columns
             if not required_columns.issubset(df.columns):
                 os.remove(temp_file_path)
                 return render_template('frontend_design.html', prediction=f"⚠️ Selected sheet does not contain required columns: {', '.join(required_columns)}.")
 
             result = train_and_predict(df)
-            os.remove(temp_file_path)  # Clean up
-
+            os.remove(temp_file_path)
             return render_prediction(result)
 
         else:
-            # Render sheet selection page
             return render_template('select_sheet.html', sheet_names=sheet_names, temp_file=unique_filename)
 
     except Exception as e:
@@ -69,82 +74,59 @@ def predict_sheet():
     temp_file_path = os.path.join(TEMP_UPLOAD_FOLDER, temp_file)
 
     try:
-        # Load selected worksheet
         df = pd.read_excel(temp_file_path, sheet_name=selected_sheet)
 
-        # Required columns for ML model
         required_columns = {'Year', 'Status', 'Price(RM)'}
         if not required_columns.issubset(df.columns):
             os.remove(temp_file_path)
             return render_template('frontend_design.html', prediction=f"⚠️ Selected sheet does not contain required columns: {', '.join(required_columns)}.")
 
         result = train_and_predict(df)
-        os.remove(temp_file_path)  # Clean up
-
+        os.remove(temp_file_path)
         return render_prediction(result)
 
     except Exception as e:
-        # Clean up temp file in case of error
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
         return render_template('frontend_design.html', prediction=f"⚠️ Error: {str(e)}")
 
 def render_prediction(result):
-    # Plotting
     plot_filename = 'prediction_plot.png'
     plot_path = os.path.join('static', plot_filename)
 
     if os.path.exists(plot_path):
         os.remove(plot_path)
 
-    # Load historical processed data from result
     if 'historical_data' not in result or len(result['historical_data']) == 0:
         return render_template('frontend_design.html', prediction="⚠️ No historical data available to plot.")
 
     processed_df = pd.DataFrame(result['historical_data'])
 
     plt.figure(figsize=(10, 6))
-    
-    # Plot historical data with enhanced markers and labels
-    historical_line = plt.plot(processed_df['Year'], processed_df['TotalSpent'], 
-                             marker='o', markersize=8, label='Actual Spending', 
-                             color='blue', linestyle='-', linewidth=2)
-    
-    # Add data point labels for historical data
+
+    plt.plot(processed_df['Year'], processed_df['TotalSpent'],
+             marker='o', markersize=8, label='Actual Spending',
+             color='blue', linestyle='-', linewidth=2)
+
     for x, y in zip(processed_df['Year'], processed_df['TotalSpent']):
-        plt.annotate(f'RM{y:.2f}', 
-                    (x, y),
-                    textcoords="offset points",
-                    xytext=(0,10),
-                    ha='center',
-                    fontsize=9,
-                    color='black')
-    
-    # Plot future predictions with enhanced markers and labels
-    future_line = plt.plot(result['future_years'], result['future_predictions'], 
-                          marker='o', markersize=8, linestyle='--', 
-                          label='Future Predictions', color='orange', linewidth=2)
-    
-    # Add data point labels for future predictions
+        plt.annotate(f'RM{y:.2f}', (x, y), textcoords="offset points",
+                     xytext=(0, 10), ha='center', fontsize=9, color='black')
+
+    plt.plot(result['future_years'], result['future_predictions'],
+             marker='o', markersize=8, linestyle='--',
+             label='Future Predictions', color='orange', linewidth=2)
+
     for x, y in zip(result['future_years'], result['future_predictions']):
-        plt.annotate(f'RM{y:.2f}', 
-                    (x, y),
-                    textcoords="offset points",
-                    xytext=(0,10),
-                    ha='center',
-                    fontsize=9,
-                    color='black')
-    
+        plt.annotate(f'RM{y:.2f}', (x, y), textcoords="offset points",
+                     xytext=(0, 10), ha='center', fontsize=9, color='black')
+
     plt.title(f"Voucher Spending Prediction (Best Model: {result['model_type']})", fontsize=14, pad=20)
     plt.xlabel("Year", fontsize=12)
     plt.ylabel("Total Spent (RM)", fontsize=12)
     plt.grid(True, linestyle='--', alpha=0.7)
     plt.legend(fontsize=12)
-    
-    # Adjust layout to prevent label cutoff
     plt.tight_layout()
-    
-    # Save plot with higher DPI for better quality
+
     plt.savefig(plot_path, dpi=100)
     plt.close()
 
@@ -161,3 +143,6 @@ def render_prediction(result):
     )
 
     return render_template('frontend_design.html', prediction=prediction_text, plot_url=plot_url)
+
+if __name__ == '__main__':
+    app.run(debug=True)
