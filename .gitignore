@@ -5,7 +5,7 @@ env/
 
 # Uploads
 uploads/
-temp_uploads/
+
 
 #ignore pkl files
 dummymodel/models/
